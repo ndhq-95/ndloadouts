@@ -1,47 +1,51 @@
-import json
+from fastapi import APIRouter
+import sqlite3
 from pathlib import Path
-from database_bf_settings import (
-    init_bf_settings_table,
-    ensure_section_column,
-    add_bf_setting
-)
 
-JSON_PATH = Path("data/bf/graphics.json")
+router = APIRouter(prefix="/api/bf/modules")
+DB_PATH = Path("/opt/ndloadouts/builds_bf.db")
 
+def connect():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
 
-def normalize_type(t: str) -> str:
-    allowed = {"toggle", "slider", "number", "select", "button", "color", "text", "bind"}
-    return t if t in allowed else "toggle"
+@router.get("/all")
+def get_all_modules():
+    conn = connect()
 
-def import_bf_settings():
-    if not JSON_PATH.exists():
-        raise FileNotFoundError(f"❌ Не найден файл: {JSON_PATH.resolve()}")
+    rows = conn.execute("""
+        SELECT 
+            m.id,
+            m.weapon_type,
+            m.category,
+            m.en,
+            m.pos,
+            wt.label AS weapon_label
+        FROM bf_modules AS m
+        LEFT JOIN bf_weapon_types AS wt
+            ON wt.key = m.weapon_type
+        ORDER BY m.weapon_type, m.category, m.pos
+    """).fetchall()
 
-    with open(JSON_PATH, "r", encoding="utf-8") as f:
-        data = json.load(f)
+    result = {}
 
-    init_bf_settings_table()
-    ensure_section_column()
+    for r in rows:
+        w_type = r["weapon_type"]
 
-    imported = 0
-    for item in data:
-        try:
-            add_bf_setting({
-                "category": item.get("category", "accessibility"),
-                "section": item.get("section", ""),
-                "title_en": item.get("title_en", ""),
-                "title_ru": item.get("title_ru", ""),
-                "type": normalize_type(item.get("type", "toggle")),
-                "default": item.get("default", ""),
-                "options": item.get("options", []),
-                "subsettings": item.get("subsettings", []),
-            })
-            imported += 1
-        except Exception as e:
-            print(f"⚠️ Ошибка при добавлении '{item.get('title_en', '')}': {e}")
+        if w_type not in result:
+            result[w_type] = {
+                "weapon_label": r["weapon_label"],
+                "modules": {}
+            }
 
-    print(f"✅ Импортировано {imported} записей из {JSON_PATH.name}.")
+        if r["category"] not in result[w_type]["modules"]:
+            result[w_type]["modules"][r["category"]] = []
 
+        result[w_type]["modules"][r["category"]].append({
+            "id": r["id"],
+            "name_en": r["en"],
+            "pos": r["pos"]
+        })
 
-if __name__ == "__main__":
-    import_bf_settings()
+    return result
