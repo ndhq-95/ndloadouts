@@ -53,11 +53,3 @@ with open(EXPORT_PATH, "w", encoding="utf-8") as f:
 print("BF FULL EXPORT →", EXPORT_PATH)
 
 
-
-@app.get("/api/bf/export/full")
-def bf_export_full():
-    return FileResponse(
-        "/opt/bf_modules_full.json",
-        filename="bf_modules_full.json",
-        media_type="application/json"
-    )
