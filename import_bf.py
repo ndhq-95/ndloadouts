@@ -1,55 +1,32 @@
-import json
 import sqlite3
-from pathlib import Path
+import json
 
-# Пути
-DATA_FILE = Path("/opt/ndloadouts/data/modules-shv.json")
-DB_PATH = Path("/opt/ndloadouts/builds_bf.db")
-EXPORT_PATH = Path("/opt/bf_modules_full.json")
-
-output = {}
-
-# --- 1. Добавляем JSON-модули (shared) ---
-
-if DATA_FILE.exists():
-    with open(DATA_FILE, "r", encoding="utf-8") as f:
-        output["shv"] = json.load(f)
-else:
-    output["shv"] = {}
-
-# --- 2. Подтягиваем модули из SQLite ---
+DB_PATH = "/opt/ndloadouts/builds_bf.db"
+OUTPUT = "bf_builds_export.json"
 
 conn = sqlite3.connect(DB_PATH)
 conn.row_factory = sqlite3.Row
+cursor = conn.cursor()
 
-rows = conn.execute("""
-    SELECT weapon_type, category, en, pos 
-    FROM bf_modules
-    ORDER BY weapon_type, category, pos
-""").fetchall()
+cursor.execute("SELECT * FROM bf_builds")
+rows = cursor.fetchall()
 
-conn.close()
+export = []
 
 for r in rows:
-    w = r["weapon_type"]
-    c = r["category"]
-    name = r["en"]
+    item = {
+        "id": r["id"],
+        "title": r["title"],
+        "weapon_type": r["weapon_type"],
+        "top": [r["top1"], r["top2"], r["top3"]],
+        "date": r["date"],
+        "mode": r["mode"],
+        "categories": json.loads(r["categories"]) if r["categories"] else [],
+        "tabs": json.loads(r["tabs"]) if r["tabs"] else [],
+    }
+    export.append(item)
 
-    if w not in output:
-        output[w] = {}
+with open(OUTPUT, "w", encoding="utf-8") as f:
+    json.dump(export, f, ensure_ascii=False, indent=2)
 
-    if c not in output[w]:
-        output[w][c] = []
-
-    # Добавляем только если ещё нет
-    if name not in output[w][c]:
-        output[w][c].append(name)
-
-# --- 3. Сохраняем ---
-
-with open(EXPORT_PATH, "w", encoding="utf-8") as f:
-    json.dump(output, f, ensure_ascii=False, indent=2)
-
-print("BF FULL EXPORT →", EXPORT_PATH)
-
-
+print(f"Экспортировано {len(export)} сборок → {OUTPUT}")
