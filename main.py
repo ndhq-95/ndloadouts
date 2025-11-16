@@ -24,18 +24,6 @@ from dotenv import load_dotenv, set_key, dotenv_values
 from import_bf import router as bf_import_router
 
 
-
-from fastapi.responses import FileResponse
-
-@app.get("/api/bf/export/full")
-def bf_export_full():
-    return FileResponse(
-        "/opt/bf_modules_full.json",
-        filename="bf_modules_full.json",
-        media_type="application/json"
-    )
-
-
 # -------------------------------
 # ⚙️ FASTAPI IMPORTS
 # -------------------------------
@@ -1455,6 +1443,21 @@ app.include_router(router_bf_settings)
 
 
 app.include_router(bf_import_router)
+
+
+
+from fastapi.responses import FileResponse
+
+@app.get("/api/bf/export/full")
+def bf_export_full():
+    return FileResponse(
+        "/opt/bf_modules_full.json",
+        filename="bf_modules_full.json",
+        media_type="application/json"
+    )
+    
+
+
 
 # =====================================================
 # ▶️ RUN (локально)
