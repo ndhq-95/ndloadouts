@@ -21,9 +21,6 @@ from datetime import datetime, timezone, timedelta
 import requests
 from dotenv import load_dotenv, set_key, dotenv_values
 
-from import_bf import router as bf_import_router
-
-
 # -------------------------------
 # ⚙️ FASTAPI IMPORTS
 # -------------------------------
@@ -1440,9 +1437,6 @@ def api_get_settings(category: str | None = Query(None)):
         raise HTTPException(status_code=500, detail=f"Ошибка загрузки настроек: {e}")
 
 app.include_router(router_bf_settings)
-
-
-app.include_router(bf_import_router)
 
 
 
